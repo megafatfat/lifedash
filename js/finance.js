@@ -8,22 +8,49 @@ const finance = {
   
   colors: ['#8B7355', '#B85C50', '#6B8E9F', '#7A8B6E', '#D4A373', '#A0937D', '#C4A77D', '#9B8B7A'],
   
-  init() {
-    this.loadData();
+  async init() {
+    await this.loadData();
     this.updateCategories();
     this.updateDashboard();
     this.updateFinanceView();
   },
   
-  loadData() {
-    const stored = localStorage.getItem('lifedash_finance');
-    if (stored) {
-      this.data = JSON.parse(stored);
+  async loadData() {
+    // Load from Supabase (with localStorage fallback built into db.js)
+    const txs = await db.getTransactions();
+    const budgetData = await db.getBudget();
+    
+    // Migrate old localStorage data if exists and Supabase is empty
+    if (txs.length === 0) {
+      const oldTxs = JSON.parse(localStorage.getItem('lifedash_finance') || '{}').transactions || [];
+      if (oldTxs.length > 0) {
+        for (const tx of oldTxs) {
+          await db.addTransaction({
+            type: tx.type,
+            amount: tx.amount,
+            category: tx.category,
+            note: tx.note,
+            date: tx.date
+          });
+        }
+        this.data.transactions = await db.getTransactions();
+      } else {
+        this.data.transactions = [];
+      }
+    } else {
+      this.data.transactions = txs;
     }
-  },
-  
-  saveData() {
-    localStorage.setItem('lifedash_finance', JSON.stringify(this.data));
+    
+    this.data.budget = budgetData.budget || 0;
+    
+    // Also migrate old budget
+    if (this.data.budget === 0) {
+      const oldFinance = JSON.parse(localStorage.getItem('lifedash_finance') || '{}');
+      if (oldFinance.budget) {
+        this.data.budget = oldFinance.budget;
+        await db.saveBudget(this.data.budget);
+      }
+    }
   },
   
   updateCategories() {
@@ -35,18 +62,18 @@ const finance = {
   getCurrentMonthTransactions() {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    return this.data.transactions.filter(t => t.date.startsWith(yearMonth));
+    return this.data.transactions.filter(t => t.date && t.date.startsWith(yearMonth));
   },
   
   getMonthStats() {
     const txs = this.getCurrentMonthTransactions();
-    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
     return { income, expense, balance: income - expense };
   },
   
   formatMoney(amount) {
-    return 'HK$ ' + amount.toLocaleString('zh-HK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return 'HK$ ' + (parseFloat(amount) || 0).toLocaleString('zh-HK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
   
   updateDashboard() {
@@ -93,7 +120,7 @@ const finance = {
   
   renderTransactions() {
     const list = document.getElementById('transactionList');
-    const txs = [...this.data.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const txs = [...this.data.transactions].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     
     if (txs.length === 0) {
       list.innerHTML = `
@@ -115,7 +142,7 @@ const finance = {
           <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '−'}${this.formatMoney(t.amount)}</div>
           <div class="tx-date">${t.date}</div>
         </div>
-        <button class="tx-delete" onclick="finance.deleteTransaction('${t.id}')">
+        <button class="tx-delete" onclick="finance.deleteTransaction(${t.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
       </div>
@@ -124,28 +151,26 @@ const finance = {
   
   renderChart() {
     const txs = this.getCurrentMonthTransactions().filter(t => t.type === 'expense');
-    const total = txs.reduce((s, t) => s + t.amount, 0);
+    const total = txs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
     
     document.getElementById('chartTotal').textContent = this.formatMoney(total);
     
     const byCategory = {};
     txs.forEach(t => {
-      byCategory[t.category] = (byCategory[t.category] || 0) + t.amount;
+      byCategory[t.category] = (byCategory[t.category] || 0) + (parseFloat(t.amount) || 0);
     });
     
     const entries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
     const svg = document.querySelector('.donut');
     
-    // Clear existing segments
     svg.querySelectorAll('.donut-segment').forEach(el => el.remove());
     
     let accumulated = 0;
-    const circumference = 2 * Math.PI * 15.9155;
     
     entries.forEach(([cat, amount], i) => {
-      const pct = amount / total;
+      const pct = total > 0 ? amount / total : 0;
       const dashArray = `${pct * 100} ${100 - pct * 100}`;
-      const dashOffset = -accumulated * 100 + 25; // +25 to start from top
+      const dashOffset = -accumulated * 100 + 25;
       
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('class', 'donut-segment');
@@ -160,7 +185,6 @@ const finance = {
       accumulated += pct;
     });
     
-    // Legend
     const legend = document.getElementById('chartLegend');
     legend.innerHTML = entries.map(([cat, amount], i) => `
       <div class="legend-item">
@@ -184,11 +208,10 @@ const finance = {
     this.updateCategories();
   },
   
-  addTransaction(e) {
+  async addTransaction(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const tx = {
-      id: Date.now().toString(),
       type: fd.get('type'),
       amount: parseFloat(fd.get('amount')),
       category: fd.get('category'),
@@ -196,17 +219,17 @@ const finance = {
       date: fd.get('date')
     };
     
-    this.data.transactions.push(tx);
-    this.saveData();
+    await db.addTransaction(tx);
+    this.data.transactions = await db.getTransactions();
     this.hideAddModal();
     this.updateDashboard();
     this.updateFinanceView();
     app.showToast('已儲存紀錄');
   },
   
-  deleteTransaction(id) {
-    this.data.transactions = this.data.transactions.filter(t => t.id !== id);
-    this.saveData();
+  async deleteTransaction(id) {
+    await db.deleteTransaction(id);
+    this.data.transactions = await db.getTransactions();
     this.updateDashboard();
     this.updateFinanceView();
     app.showToast('已刪除');
@@ -221,10 +244,11 @@ const finance = {
     document.getElementById('budgetModal').classList.remove('open');
   },
   
-  saveBudget(e) {
+  async saveBudget(e) {
     e.preventDefault();
-    this.data.budget = parseFloat(e.target.budget.value) || 0;
-    this.saveData();
+    const amount = parseFloat(e.target.budget.value) || 0;
+    this.data.budget = amount;
+    await db.saveBudget(amount);
     this.hideBudgetModal();
     this.updateDashboard();
     this.updateFinanceView();

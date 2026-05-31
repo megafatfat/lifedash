@@ -12,31 +12,16 @@ const pomodoro = {
   totalCompleted: 0,
   totalFocusMinutes: 0,
   
-  init() {
-    this.loadData();
+  async init() {
+    const stats = await db.getPomodoroStats();
+    this.totalCompleted = stats.totalCompleted || 0;
+    this.totalFocusMinutes = stats.totalFocusMinutes || 0;
     this.updateDisplay();
     this.updateStats();
     
-    // Request notification permission
     if ('Notification' in navigator && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-  },
-  
-  loadData() {
-    const stored = localStorage.getItem('lifedash_pomodoro');
-    if (stored) {
-      const data = JSON.parse(stored);
-      this.totalCompleted = data.totalCompleted || 0;
-      this.totalFocusMinutes = data.totalFocusMinutes || 0;
-    }
-  },
-  
-  saveData() {
-    localStorage.setItem('lifedash_pomodoro', JSON.stringify({
-      totalCompleted: this.totalCompleted,
-      totalFocusMinutes: this.totalFocusMinutes
-    }));
   },
   
   setMode(mode) {
@@ -79,17 +64,19 @@ const pomodoro = {
     this.updateDisplay();
   },
   
-  complete() {
+  async complete() {
     this.pause();
     
     if (this.currentMode === 'focus') {
       this.totalCompleted++;
       this.totalFocusMinutes += this.modes.focus.minutes;
-      this.saveData();
+      await db.savePomodoroStats({
+        totalCompleted: this.totalCompleted,
+        totalFocusMinutes: this.totalFocusMinutes
+      });
       this.updateStats();
     }
     
-    // Notification
     if ('Notification' in navigator && Notification.permission === 'granted') {
       const title = this.currentMode === 'focus' ? '專注完成！' : '休息結束！';
       const body = this.currentMode === 'focus' ? '做得好！是時候休息一下。' : '準備好開始下一個專注時段了嗎？';
@@ -98,7 +85,6 @@ const pomodoro = {
     
     app.showToast(this.currentMode === 'focus' ? '專注時段完成！' : '休息結束！');
     
-    // Auto switch
     if (this.currentMode === 'focus') {
       this.setMode('short');
     } else {
@@ -112,7 +98,6 @@ const pomodoro = {
     document.getElementById('pomoTime').textContent = 
       `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     
-    // Update progress ring
     const total = this.modes[this.currentMode].minutes * 60;
     const progress = (total - this.timeLeft) / total;
     const circumference = 2 * Math.PI * 45;

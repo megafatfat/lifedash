@@ -24,30 +24,38 @@ const worldClock = {
   selected: [],
   timer: null,
   
-  init() {
-    this.loadData();
+  async init() {
+    await this.loadData();
     this.populateSelect();
     this.render();
     this.startTick();
   },
   
-  loadData() {
-    const stored = localStorage.getItem('lifedash_clocks');
-    if (stored) {
-      this.selected = JSON.parse(stored);
+  async loadData() {
+    const dbCities = await db.getClockCities();
+    
+    if (dbCities && dbCities.length > 0) {
+      this.selected = dbCities.map(c => ({
+        name: c.name,
+        region: c.region,
+        timezone: c.timezone
+      }));
     } else {
-      // Default: Hong Kong, London, New York, Tokyo
-      this.selected = [
-        { name: '香港', region: '亞洲', timezone: 'Asia/Hong_Kong' },
-        { name: '倫敦', region: '歐洲', timezone: 'Europe/London' },
-        { name: '紐約', region: '美洲', timezone: 'America/New_York' },
-        { name: '東京', region: '亞洲', timezone: 'Asia/Tokyo' }
-      ];
+      // Migrate old data or use defaults
+      const oldCities = JSON.parse(localStorage.getItem('lifedash_clocks') || 'null');
+      if (oldCities && oldCities.length > 0) {
+        this.selected = oldCities;
+        await db.saveClockCities(this.selected);
+      } else {
+        this.selected = [
+          { name: '香港', region: '亞洲', timezone: 'Asia/Hong_Kong' },
+          { name: '倫敦', region: '歐洲', timezone: 'Europe/London' },
+          { name: '紐約', region: '美洲', timezone: 'America/New_York' },
+          { name: '東京', region: '亞洲', timezone: 'Asia/Tokyo' }
+        ];
+        await db.saveClockCities(this.selected);
+      }
     }
-  },
-  
-  saveData() {
-    localStorage.setItem('lifedash_clocks', JSON.stringify(this.selected));
   },
   
   populateSelect() {
@@ -61,7 +69,7 @@ const worldClock = {
         .join('');
   },
   
-  addCity() {
+  async addCity() {
     const select = document.getElementById('citySelect');
     const tz = select.value;
     if (!tz) return;
@@ -69,7 +77,7 @@ const worldClock = {
     const city = this.cities.find(c => c.timezone === tz);
     if (city) {
       this.selected.push(city);
-      this.saveData();
+      await db.saveClockCities(this.selected);
       this.populateSelect();
       this.render();
       select.value = '';
@@ -77,10 +85,10 @@ const worldClock = {
     }
   },
   
-  removeCity(index) {
+  async removeCity(index) {
     const name = this.selected[index].name;
     this.selected.splice(index, 1);
-    this.saveData();
+    await db.saveClockCities(this.selected);
     this.populateSelect();
     this.render();
     app.showToast(`已移除 ${name}`);
@@ -118,7 +126,6 @@ const worldClock = {
     const timeStr = now.toLocaleTimeString('zh-HK', { ...options, hour: '2-digit', minute: '2-digit' });
     const dateStr = now.toLocaleDateString('zh-HK', { ...options, month: 'short', day: 'numeric', weekday: 'short' });
     
-    // Calculate offset
     const hkTime = now.toLocaleString('en-US', { timeZone: 'Asia/Hong_Kong', hour12: false });
     const cityTime = now.toLocaleString('en-US', { timeZone: timezone, hour12: false });
     const hkDate = new Date(hkTime);
