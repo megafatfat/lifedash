@@ -1,6 +1,11 @@
 const finance = {
   data: { transactions: [], budget: 0 },
-  calcExpr: '',
+  calcState: {
+    firstOperand: null,
+    operator: null,
+    waitingForSecondOperand: false,
+    displayValue: '0'
+  },
   
   categories: {
     expense: ['飲食', '交通', '購物', '娛樂', '家居', '醫療', '教育', '其他'],
@@ -79,73 +84,127 @@ const finance = {
   },
   
   // ========== Calculator Keypad ==========
-  calcInput(char) {
-    const operators = ['+', '-', '*', '/'];
-    const lastChar = this.calcExpr.slice(-1);
+  resetCalculator() {
+    this.calcState = {
+      firstOperand: null,
+      operator: null,
+      waitingForSecondOperand: false,
+      displayValue: '0'
+    };
+    this.updateCalcDisplay();
+  },
+  
+  calcInputDigit(digit) {
+    const { displayValue, waitingForSecondOperand } = this.calcState;
     
-    if (operators.includes(char)) {
-      if (this.calcExpr === '') return;
-      if (operators.includes(lastChar)) {
-        this.calcExpr = this.calcExpr.slice(0, -1) + char;
-      } else {
-        this.calcExpr += char;
-      }
+    if (waitingForSecondOperand) {
+      this.calcState.displayValue = digit === '.' ? '0.' : digit;
+      this.calcState.waitingForSecondOperand = false;
     } else {
-      this.calcExpr += char;
+      // Prevent multiple decimal points
+      if (digit === '.' && displayValue.includes('.')) return;
+      // Replace initial 0 unless adding decimal
+      if (displayValue === '0' && digit !== '.') {
+        this.calcState.displayValue = digit;
+      } else {
+        this.calcState.displayValue = displayValue + digit;
+      }
     }
     
+    this.updateCalcDisplay();
+  },
+  
+  calcInputOperator(nextOperator) {
+    const { firstOperand, operator, displayValue } = this.calcState;
+    const inputValue = parseFloat(displayValue);
+    
+    if (operator && this.calcState.waitingForSecondOperand) {
+      // User changed operator before entering second operand
+      this.calcState.operator = nextOperator;
+      this.updateCalcDisplay();
+      return;
+    }
+    
+    if (firstOperand === null) {
+      this.calcState.firstOperand = inputValue;
+    } else if (operator) {
+      const result = this.calcPerformOperation(firstOperand, inputValue, operator);
+      this.calcState.displayValue = String(result);
+      this.calcState.firstOperand = result;
+    }
+    
+    this.calcState.waitingForSecondOperand = true;
+    this.calcState.operator = nextOperator;
+    this.updateCalcDisplay();
+  },
+  
+  calcPerformOperation(first, second, operator) {
+    switch (operator) {
+      case '+': return first + second;
+      case '-': return first - second;
+      case '*': return first * second;
+      case '/': return second === 0 ? 0 : first / second;
+      default: return second;
+    }
+  },
+  
+  calcEquals() {
+    const { firstOperand, operator, displayValue } = this.calcState;
+    
+    if (operator === null || firstOperand === null) {
+      // Just confirm current display value as amount
+      this.calcState.firstOperand = parseFloat(displayValue);
+      this.calcState.operator = null;
+      this.calcState.waitingForSecondOperand = false;
+      this.updateCalcDisplay();
+      return;
+    }
+    
+    const inputValue = parseFloat(displayValue);
+    const result = this.calcPerformOperation(firstOperand, inputValue, operator);
+    
+    this.calcState.displayValue = String(result);
+    this.calcState.firstOperand = null;
+    this.calcState.operator = null;
+    this.calcState.waitingForSecondOperand = false;
     this.updateCalcDisplay();
   },
   
   calcClear() {
-    this.calcExpr = '';
-    document.getElementById('calcAmount').value = '';
-    this.updateCalcDisplay();
+    this.resetCalculator();
   },
   
   calcBackspace() {
-    this.calcExpr = this.calcExpr.slice(0, -1);
+    const { displayValue, waitingForSecondOperand } = this.calcState;
+    
+    if (waitingForSecondOperand) return;
+    
+    if (displayValue.length === 1) {
+      this.calcState.displayValue = '0';
+    } else {
+      this.calcState.displayValue = displayValue.slice(0, -1);
+    }
+    
     this.updateCalcDisplay();
   },
   
-  calcEquals() {
-    if (!this.calcExpr) return;
-    
-    const operators = ['+', '-', '*', '/'];
-    let expr = this.calcExpr;
-    if (operators.includes(expr.slice(-1))) {
-      expr = expr.slice(0, -1);
-    }
-    
-    if (!expr) return;
-    
-    // Validate expression contains only numbers and operators
-    if (!/^[\d+\-*/.()]+$/.test(expr)) {
-      app.showToast('計算式無效');
-      return;
-    }
-    
-    try {
-      // eslint-disable-next-line no-new-func
-      const result = new Function('"use strict"; return (' + expr + ')')();
-      const amount = parseFloat(result);
-      
-      if (!isFinite(amount) || isNaN(amount)) {
-        app.showToast('計算式無效');
-        return;
-      }
-      
-      document.getElementById('calcAmount').value = amount.toFixed(2);
-      this.calcExpr = '';
-      this.updateCalcDisplay();
-    } catch (e) {
-      app.showToast('計算式無效');
-    }
-  },
-  
   updateCalcDisplay() {
+    const { firstOperand, operator, displayValue } = this.calcState;
+    const amountInput = document.getElementById('calcAmount');
     const display = document.getElementById('calcDisplay');
-    if (display) display.textContent = this.calcExpr;
+    
+    if (amountInput) {
+      amountInput.value = displayValue;
+    }
+    
+    if (display) {
+      const opSymbol = operator ? { '+': '+', '-': '−', '*': '×', '/': '÷' }[operator] : '';
+      if (firstOperand !== null && operator) {
+        display.textContent = `${firstOperand} ${opSymbol}`;
+      } else {
+        display.textContent = '';
+      }
+    }
   },
   
   updateDashboard() {
@@ -159,11 +218,14 @@ const finance = {
     document.getElementById('dashExpense').textContent = this.formatMoney(stats.expense);
     document.getElementById('dashBalance').textContent = this.formatMoney(stats.balance);
     
+    const dashExpense = document.getElementById('dashExpense');
     const dashBudget = document.getElementById('dashBudget');
     if (remaining < 0) {
-      dashBudget.textContent = this.formatMoney(remaining);
+      dashExpense.classList.add('negative');
+      dashBudget.textContent = `超支 ${this.formatMoney(Math.abs(remaining))}`;
       dashBudget.classList.add('negative');
     } else {
+      dashExpense.classList.remove('negative');
       dashBudget.textContent = this.formatMoney(remaining);
       dashBudget.classList.remove('negative');
     }
@@ -188,14 +250,18 @@ const finance = {
     document.getElementById('finBudgetSpent').textContent = this.formatMoney(spent);
     document.getElementById('finBudgetTotal').textContent = this.formatMoney(budget);
     
+    const finExpense = document.getElementById('finExpense');
     const finBudgetStatus = document.getElementById('finBudgetStatus');
     if (budget <= 0) {
+      finExpense.classList.remove('negative');
       finBudgetStatus.textContent = '尚未設定預算';
       finBudgetStatus.classList.remove('negative');
     } else if (remaining < 0) {
+      finExpense.classList.add('negative');
       finBudgetStatus.textContent = `已超支 ${this.formatMoney(Math.abs(remaining))}`;
       finBudgetStatus.classList.add('negative');
     } else {
+      finExpense.classList.remove('negative');
       finBudgetStatus.textContent = `還剩 ${this.formatMoney(remaining)}`;
       finBudgetStatus.classList.remove('negative');
     }
@@ -297,7 +363,7 @@ const finance = {
     return this.data.transactions.filter(t => t.date && t.date.startsWith(yearMonth));
   },
   
-  getMonthStats(yearMonth) {
+  getMonthStatsByMonth(yearMonth) {
     const txs = this.getMonthTransactions(yearMonth);
     const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
     const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
@@ -321,7 +387,7 @@ const finance = {
   
   renderReport(yearMonth) {
     const [year, month] = yearMonth.split('-');
-    const stats = this.getMonthStats(yearMonth);
+    const stats = this.getMonthStatsByMonth(yearMonth);
     const budget = this.data.budget || 0;
     const percent = budget > 0 ? Math.min((stats.expense / budget) * 100, 100) : 0;
     const overBudget = budget > 0 && stats.expense > budget;
@@ -434,8 +500,7 @@ const finance = {
   showAddModal() {
     document.getElementById('addModal').classList.add('open');
     this.updateCategories();
-    this.calcExpr = '';
-    this.updateCalcDisplay();
+    this.resetCalculator();
   },
   
   hideAddModal() {
@@ -444,8 +509,7 @@ const finance = {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('transactionDate').value = today;
     this.updateCategories();
-    this.calcExpr = '';
-    this.updateCalcDisplay();
+    this.resetCalculator();
   },
   
   async addTransaction(e) {

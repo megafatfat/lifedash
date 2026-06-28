@@ -464,25 +464,27 @@
         </div>
         <div class="form-group">
           <label>金額（HK$）</label>
-          <input type="text" name="amount" class="input-field" id="calcAmount" placeholder="0.00" readonly>
-          <div class="calc-display" id="calcDisplay"></div>
+          <div class="calc-screen">
+            <input type="text" name="amount" class="input-field" id="calcAmount" placeholder="0.00" readonly>
+            <div class="calc-display" id="calcDisplay"></div>
+          </div>
           <div class="calc-keypad">
-            <button type="button" class="calc-btn" onclick="finance.calcInput('7')">7</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('8')">8</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('9')">9</button>
-            <button type="button" class="calc-btn op" onclick="finance.calcInput('/')">÷</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('4')">4</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('5')">5</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('6')">6</button>
-            <button type="button" class="calc-btn op" onclick="finance.calcInput('*')">×</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('1')">1</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('2')">2</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('3')">3</button>
-            <button type="button" class="calc-btn op" onclick="finance.calcInput('-')">−</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('7')">7</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('8')">8</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('9')">9</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInputOperator('/')">÷</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('4')">4</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('5')">5</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('6')">6</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInputOperator('*')">×</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('1')">1</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('2')">2</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('3')">3</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInputOperator('-')">−</button>
             <button type="button" class="calc-btn action" onclick="finance.calcClear()">C</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('0')">0</button>
-            <button type="button" class="calc-btn" onclick="finance.calcInput('.')">.</button>
-            <button type="button" class="calc-btn op" onclick="finance.calcInput('+')">+</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('0')">0</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInputDigit('.')">.</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInputOperator('+')">+</button>
             <button type="button" class="calc-btn action" onclick="finance.calcBackspace()">⌫</button>
             <button type="button" class="calc-btn equals" onclick="finance.calcEquals()">=</button>
           </div>
