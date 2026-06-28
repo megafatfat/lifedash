@@ -408,7 +408,7 @@ const finance = {
     
     const categoryHtml = categories.length > 0
       ? `<div class="report-category-list">${categories.map(([cat, amount], i) => `
-          <div class="report-category-item">
+          <div class="report-category-item clickable" onclick="finance.showCategoryTransactions('${yearMonth}', '${cat}')">
             <div class="legend-dot" style="background: ${this.colors[i % this.colors.length]}"></div>
             <div class="report-category-info" style="min-width:110px">
               <span class="report-category-name">${cat}</span>
@@ -494,7 +494,45 @@ const finance = {
         <h4>交易明細</h4>
         ${transactionsHtml}
       </div>
+      
+      <div class="report-section category-detail" id="categoryTxDetail" style="display:none">
+        <h4 id="categoryTxTitle">分類交易明細</h4>
+        <div id="categoryTxList"></div>
+      </div>
     `;
+  },
+  
+  showCategoryTransactions(yearMonth, category) {
+    const txs = this.getMonthTransactions(yearMonth)
+      .filter(t => t.type === 'expense' && t.category === category)
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    
+    const total = txs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    const detail = document.getElementById('categoryTxDetail');
+    const title = document.getElementById('categoryTxTitle');
+    const list = document.getElementById('categoryTxList');
+    
+    title.textContent = `${category} 交易明細（共 ${txs.length} 筆，${this.formatMoney(total)}）`;
+    
+    if (txs.length === 0) {
+      list.innerHTML = '<div class="report-empty"><p>該分類暫時未有紀錄</p></div>';
+    } else {
+      list.innerHTML = `<div class="report-transactions">${txs.map(t => `
+        <div class="transaction-item">
+          <div class="tx-icon expense">−</div>
+          <div class="tx-details">
+            <div class="tx-category">${t.note || t.category}</div>
+            <div class="tx-note">${t.date}</div>
+          </div>
+          <div>
+            <div class="tx-amount expense">−${this.formatMoney(t.amount)}</div>
+          </div>
+        </div>
+      `).join('')}</div>`;
+    }
+    
+    detail.style.display = 'block';
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   },
   
   showAddModal() {

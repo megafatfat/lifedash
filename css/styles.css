@@ -1006,6 +1006,17 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.report-category-item.clickable {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.report-category-item.clickable:hover {
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(2px);
+}
+
 .report-category-bar {
   flex: 1;
   height: 8px;
@@ -1047,6 +1058,19 @@ body {
   text-align: center;
   padding: 32px 20px;
   color: var(--text-muted);
+}
+
+.category-detail {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--border);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 480px) {
