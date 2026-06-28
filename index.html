@@ -224,6 +224,17 @@
         </div>
       </div>
 
+      <!-- Monthly Report -->
+      <div class="section-block">
+        <div class="section-header">
+          <h2>每月收支報表</h2>
+        </div>
+        <div class="report-controls">
+          <input type="month" id="reportMonth" class="input-field">
+          <button class="primary-btn" onclick="finance.showReportModal()">查看月結</button>
+        </div>
+      </div>
+
       <!-- Chart Section -->
       <div class="section-block">
         <div class="section-header">
@@ -453,7 +464,28 @@
         </div>
         <div class="form-group">
           <label>金額（HK$）</label>
-          <input type="number" name="amount" class="input-field" placeholder="0.00" step="0.01" min="0" required>
+          <input type="text" name="amount" class="input-field" id="calcAmount" placeholder="0.00" readonly>
+          <div class="calc-display" id="calcDisplay"></div>
+          <div class="calc-keypad">
+            <button type="button" class="calc-btn" onclick="finance.calcInput('7')">7</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('8')">8</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('9')">9</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInput('/')">÷</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('4')">4</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('5')">5</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('6')">6</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInput('*')">×</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('1')">1</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('2')">2</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('3')">3</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInput('-')">−</button>
+            <button type="button" class="calc-btn action" onclick="finance.calcClear()">C</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('0')">0</button>
+            <button type="button" class="calc-btn" onclick="finance.calcInput('.')">.</button>
+            <button type="button" class="calc-btn op" onclick="finance.calcInput('+')">+</button>
+            <button type="button" class="calc-btn action" onclick="finance.calcBackspace()">⌫</button>
+            <button type="button" class="calc-btn equals" onclick="finance.calcEquals()">=</button>
+          </div>
         </div>
         <div class="form-group">
           <label>分類</label>
@@ -488,6 +520,21 @@
         </div>
         <button type="submit" class="primary-btn full">儲存</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Monthly Report -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal report-modal">
+      <div class="modal-header">
+        <h3 id="reportTitle">收支月結</h3>
+        <button class="icon-btn" onclick="finance.hideReportModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="reportBody">
+        <div class="empty-state"><p>載入中...</p></div>
+      </div>
     </div>
   </div>
 

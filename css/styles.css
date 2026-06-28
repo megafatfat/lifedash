@@ -344,6 +344,10 @@ body {
 .budget-bar-fill.warning { background: var(--warning); }
 .budget-bar-fill.danger { background: var(--danger); }
 
+.negative {
+  color: var(--danger) !important;
+}
+
 .budget-display {
   text-align: center;
 }
@@ -616,6 +620,68 @@ body {
   display: none;
 }
 
+/* ========== Calculator Keypad ========== */
+.calc-display {
+  min-height: 28px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: right;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', monospace;
+  word-break: break-all;
+}
+
+.calc-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-btn {
+  padding: 12px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.calc-btn:hover {
+  background: var(--bg);
+  border-color: var(--primary-light);
+}
+
+.calc-btn:active {
+  transform: scale(0.96);
+}
+
+.calc-btn.op {
+  background: #FAF6F0;
+  color: var(--primary);
+}
+
+.calc-btn.action {
+  background: var(--border-light);
+  color: var(--text-secondary);
+}
+
+.calc-btn.equals {
+  grid-column: span 2;
+  background: var(--primary);
+  color: white;
+}
+
+.calc-btn.equals:hover {
+  background: var(--primary-dark);
+}
+
 .radio-text {
   display: block;
   padding: 10px;
@@ -850,6 +916,113 @@ body {
 
 .modal.small {
   max-width: 340px;
+}
+
+.modal.report-modal {
+  max-width: 560px;
+}
+
+.report-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.report-controls .input-field {
+  flex: 1;
+}
+
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.report-summary .summary-card {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.report-summary .card-value {
+  font-size: 15px;
+}
+
+.report-section {
+  margin-bottom: 20px;
+}
+
+.report-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.report-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-category-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.report-category-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border-light);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.report-category-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+.report-category-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 90px;
+}
+
+.report-category-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-category-amount {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.report-transactions {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.report-empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .report-summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes modalIn {
