@@ -9,6 +9,7 @@
 - 分類管理（飲食、交通、購物等）
 - 每月預算設定同追蹤
 - 圖表化支出分析
+- 每月收支月結報表
 
 ### 工具箱
 - **世界時間** - 監察多個城市實時時間
@@ -33,7 +34,25 @@ cd personal-dashboard && npx serve .
 
 然後用瀏覽器打開 `http://localhost:8080`
 
-所有數據儲存在瀏覽器 LocalStorage，不會上傳到任何伺服器。
+## 數據儲存
+
+- **在線時**：數據會同步到 Supabase 雲端數據庫
+- **離線時**：自動使用瀏覽器 LocalStorage 作為備份，再次上線後會繼續同步
+- 數據透過 `x-user-key` header 同 Row Level Security（RLS）進行隔離
+
+### 重要安全提示
+
+`js/db.js` 入面嘅 `USER_KEY` 預設係 `'default'`。如果你打算正式使用，請改成一組只有自己知道嘅隨機字串，例如：
+
+```js
+const USER_KEY = 'ld-2024-your-random-string';
+```
+
+否則其他使用相同 key 嘅人可能會讀寫到你嘅數據。
+
+### Supabase 設定
+
+如果你使用自己嘅 Supabase 專案，請參考 `supabase-setup.sql` 建立數據表同 RLS 政策。
 
 ## PWA 安裝
 
@@ -44,6 +63,7 @@ cd personal-dashboard && npx serve .
 ## 技術
 
 - HTML5 / CSS3 / Vanilla JavaScript
-- LocalStorage 數據持久化
+- Supabase 雲端同步
+- LocalStorage 離線備份
 - Service Worker 離線支援
 - Responsive Design
